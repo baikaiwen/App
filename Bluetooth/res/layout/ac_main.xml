@@ -9,14 +9,22 @@
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="50dp"
-        android:background="@color/white" >
+        android:background="@color/white"
+        android:visibility="gone" >
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="首页"
+            android:textColor="@color/text_blue"
+            android:textSize="18dp" />
 
         <ImageButton
             android:id="@+id/ib_set"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
             android:background="@null"
             android:src="@drawable/btn_setup" />
     </RelativeLayout>
@@ -38,37 +46,72 @@
             android:id="@+id/et_input"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:singleLine="true"
-            android:imeOptions="actionSearch"
             android:layout_marginRight="8dp"
             android:layout_weight="8"
+            android:imeOptions="actionSearch"
+            android:singleLine="true"
             android:textColorHint="@color/red" />
     </LinearLayout>
 
-    <TextView 
-        android:id="@+id/tv_num"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:text="已扫描:"
-        android:background="@color/white"
-        android:textColor="@color/red"
-        android:paddingLeft="10dp"
-        />
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" >
-  
+        android:layout_weight="1"
+        android:visibility="gone" >
+
         <ListView
-            android:id="@+id/lv_code"
+            android:id="@+id/lv_drivers"
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent" >
+            android:layout_height="fill_parent"
+            android:listSelector="@color/blue"
+             >
         </ListView>
     </RelativeLayout>
 
+    <TextView
+        android:id="@+id/tv_num"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:paddingLeft="10dp"
+        android:text="已扫描:"
+        android:visibility="invisible"
+        android:textColor="@color/red" />
+
     <RelativeLayout
         android:layout_width="fill_parent"
-        android:layout_height="40dp" >
+        android:layout_height="0dp"
+        android:layout_weight="2" >
+
+        <ListView
+            android:id="@+id/lv_code"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_marginTop="1dp" >
+        </ListView>
+    </RelativeLayout>
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:paddingLeft="10dp"
+        android:text="复核"
+        android:textColor="@color/red" />
+
+    <ListView
+        android:id="@+id/lv_review"
+        android:layout_width="fill_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="1dp"
+        android:layout_weight="2"
+        android:visibility="gone" >
+    </ListView>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="40dp"
+        android:visibility="gone" >
 
         <Button
             android:id="@+id/btn_replay"

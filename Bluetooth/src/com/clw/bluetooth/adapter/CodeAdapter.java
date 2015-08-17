@@ -2,7 +2,8 @@ package com.clw.bluetooth.adapter;
 
 import java.util.List;
 
-import android.R;
+import com.clw.bluetooth.R;
+
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,7 +46,7 @@ public class CodeAdapter extends BaseAdapter {
     Views views = null;
     if (convertView == null) {
       views = new Views();
-      convertView = LayoutInflater.from(mContext).inflate(R.layout.simple_list_item_1, null);
+      convertView = LayoutInflater.from(mContext).inflate(R.layout.item_list, null);
       views.tv_code = (TextView) convertView.findViewById(R.id.text1);
       convertView.setTag(views);
     } else {
