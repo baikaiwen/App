@@ -40,7 +40,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="商品扫描:"
-            android:textColor="@color/txt_black" />
+            android:textColor="@color/txt_black"
+            android:textSize="18sp" />
 
         <EditText
             android:id="@+id/et_input"
@@ -63,20 +64,35 @@
             android:id="@+id/lv_drivers"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:listSelector="@color/blue"
-             >
+            android:listSelector="@color/blue" >
         </ListView>
     </RelativeLayout>
 
-    <TextView
-        android:id="@+id/tv_num"
+    <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
-        android:paddingLeft="10dp"
-        android:text="已扫描:"
-        android:visibility="invisible"
-        android:textColor="@color/red" />
+        android:layout_marginLeft="8dp"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/tv_custmo_name"
+            android:layout_width="0dp"
+            android:layout_weight="6"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tv_num"
+            android:layout_width="0dp"
+            android:layout_weight="4"
+            android:layout_height="wrap_content"
+            android:text="已扫描:"
+            android:textColor="@color/red"
+            android:textSize="16sp" />
+    </LinearLayout>
 
     <RelativeLayout
         android:layout_width="fill_parent"

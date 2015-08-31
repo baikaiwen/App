@@ -6,10 +6,17 @@ package com.clw.bluetooth.bean;
 public class ReviewProductBean {
   private static final String TAG = "ReviewProductBean";
   
-  private String bwNo; //品名
+  private String bwNo; //编码
   private String qty; //数量
   private String weight; //重量
+  private String bwdsp; //名字
   
+  public String getBwdsp() {
+    return this.bwdsp;
+  }
+  public void setBwdsp(String bwdsp) {
+    this.bwdsp = bwdsp;
+  }
   public String getWeight() {
     return this.weight;
   }

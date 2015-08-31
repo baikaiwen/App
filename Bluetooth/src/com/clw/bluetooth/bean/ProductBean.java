@@ -17,11 +17,30 @@ public class ProductBean {
   private String date; // 日期
   private String line; // 线路
   private String loading; // 装车号
-  private String booth; // 摊位
-  private String custmo; // 客户
+  private String booth; // 摊位编码
+  private String custmo; // 客户编码
   private String weight; //总重量
   private String qtyNo; //总数量
+  private String custmoName; //客户名称
+  private String boothName; //摊位名称
   
+  
+
+  public String getCustmoName() {
+    return this.custmoName;
+  }
+
+  public void setCustmoName(String custmoName) {
+    this.custmoName = custmoName;
+  }
+
+  public String getBoothName() {
+    return this.boothName;
+  }
+
+  public void setBoothName(String boothName) {
+    this.boothName = boothName;
+  }
 
   public String getQtyNo() {
     return this.qtyNo;

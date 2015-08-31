@@ -53,7 +53,7 @@ public class ReviewAdapter extends BaseAdapter {
     }
 
     ReviewProductBean bean = beans.get(arg0);
-    views.tv_name.setText("品名:" + bean.getBwNo());
+    views.tv_name.setText("品名:" + bean.getBwdsp());
     views.tv_num.setText("数量:" + bean.getQty());
     return convertView;
   }

@@ -1,8 +1,8 @@
 package com.clw.bluetooth;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +15,11 @@ import zpSDK.zpSDK.zpSDK.BARCODE_TYPE;
 
 import com.clw.bluetooth.adapter.CodeAdapter;
 import com.clw.bluetooth.adapter.ReviewAdapter;
+import com.clw.bluetooth.app.App;
 import com.clw.bluetooth.bean.ProductBean;
 import com.clw.bluetooth.bean.ReviewProductBean;
+import com.clw.bluetooth.db.DbProductInfoHelper;
+import com.clw.bluetooth.db.DbProductInfoMannager;
 import com.clw.bluetooth.service.BluetoothService;
 import com.clw.bluetooth.service.NetService;
 import com.clw.bluetooth.util.BtSPP;
@@ -63,6 +66,8 @@ public class MainAc extends Activity implements OnClickListener {
 
   private TextView tv_num;
 
+  private TextView tv_custmo_name;
+
   /** 重打 */
   private Button btn_replay;
 
@@ -82,7 +87,7 @@ public class MainAc extends Activity implements OnClickListener {
   private int num = 0;
 
   /** 流水号 */
-  private int serialNum = 1000;
+  private long serialNum = 1000;
 
   /** 数据源 */
   private List<String> listCodes = new ArrayList<String>();
@@ -103,6 +108,7 @@ public class MainAc extends Activity implements OnClickListener {
 
   /** 是否第一次按下TAB键 */
   private boolean tab = true;
+  
 
   /** 复核列表 */
   private List<ReviewProductBean> productBeans = new ArrayList<ReviewProductBean>();
@@ -116,7 +122,9 @@ public class MainAc extends Activity implements OnClickListener {
   private String machine = "";
 
   /** 箱条码 */
-  private String carTonNo = "";
+  private String carTonNo = null;
+  
+  private long proNo=0;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -142,13 +150,18 @@ public class MainAc extends Activity implements OnClickListener {
     tv_num = (TextView) findViewById(R.id.tv_num);
     lv_drivers = (ListView) findViewById(R.id.lv_drivers);
     lv_review = (ListView) findViewById(R.id.lv_review);
+    tv_custmo_name = (TextView) findViewById(R.id.tv_custmo_name);
 
     // ib_set.setOnClickListener(this);
     btn_print.setOnClickListener(this);
     btn_replay.setOnClickListener(this);
     btn_review.setOnClickListener(this);
 
+    tv_custmo_name.setText("客户:" + ProductBean.getInstance().getCustmoName() + ",摊位:"
+        + ProductBean.getInstance().getBoothName());
+
     /* 初始化扫描列表 */
+
     codeAdapter = new CodeAdapter(listCodes, mActivity);
     lv_code.setAdapter(codeAdapter);
 
@@ -157,8 +170,11 @@ public class MainAc extends Activity implements OnClickListener {
     lv_review.setAdapter(reviewAdapter);
 
     /* 获取流水号 */
-    SharedPreferences sp_selnum = getSharedPreferences("selNum", MODE_APPEND);
-    serialNum = sp_selnum.getInt("sel_num", 0);
+//    SharedPreferences sp_selnum = getSharedPreferences("selNum", MODE_APPEND);
+//    int sel_num = sp_selnum.getInt("sel_num", 0);
+//    if (sel_num != 0) {
+//      serialNum = sel_num;
+//    }
     et_input.requestFocus();
     et_input.setOnEditorActionListener(new Edit());
     // et_input.addTextChangedListener(new inputCode());
@@ -183,6 +199,7 @@ public class MainAc extends Activity implements OnClickListener {
           numHander.sendMessage(msg);
           if (!listCodes.contains(str)) {
             listCodes.add(str);
+            Collections.reverse(listCodes);
           }
           et_input.getText().clear();
 
@@ -200,7 +217,9 @@ public class MainAc extends Activity implements OnClickListener {
     public void handleMessage(android.os.Message msg) {
       switch (msg.arg1) {
         case 1: // 添加扫描次数
-          tv_num.setText("已扫描次数:" + num);
+          int size = listCodes.size();
+          tv_num.setText("已扫描:" + size + "条");
+
           codeAdapter.notifyDataSetChanged();
           break;
         case 2: // 复核访问成功
@@ -216,28 +235,30 @@ public class MainAc extends Activity implements OnClickListener {
         case 10:
           Toast.makeText(mActivity, msg.obj.toString(), 200).show();
           break;
+        case 111: // 插入主表后的操作,代表打印了
+          finish();
+          break;
+        case 110: // 插入主表
+          String json = msg.obj.toString();
+          Log.i(TAG, "插入主表成功返回:" + json);
+          try {
+            JSONObject obj = new JSONObject(json);
+            int status = obj.getInt("status");
+            if (status == 0) {
+              Print2(SelectedBDAddress);
+            } else {
+              showMessage("插入主表未成功,打印取消");
+            }
+          } catch (JSONException e) {
+            Log.e(TAG, "", e);
+          }
+
+          break;
         default:
           break;
       }
     };
   };
-
-  /**
-   * 把List集合转为数组
-   * 
-   * 返回一个数组
-   * */
-  private String[] listOrArray() {
-    if (!Tools.isEmptyList(listCodes)) {
-      int size = listCodes.size();
-      String[] txm_no = new String[size];
-      for (int i = 0; i < listCodes.size(); i++) {
-        txm_no[i] = listCodes.get(i).toString();
-      }
-      return txm_no;
-    }
-    return null;
-  }
 
   /**
    * 
@@ -290,15 +311,16 @@ public class MainAc extends Activity implements OnClickListener {
           if (!Tools.isNull(SelectedBDAddress)) {// 判断是否绑定有打印机设备
             // 品名数组 //数量数组
             // 13371967600
-            if (isPlay) {
-              Print2(SelectedBDAddress);
-              // Print1(SelectedBDAddress);
-            } else {
+            // if (isPlay) {
+            // Print1(SelectedBDAddress);
+            // } else {
+            // Print2(SelectedBDAddress);
+            if (!isPlay) {
               callService();
-              Print2(SelectedBDAddress);
-              // Print1(SelectedBDAddress);
             }
-
+            // Print1(SelectedBDAddress);
+            // }
+            
           } else {
             Toast.makeText(mActivity, "请绑定一个蓝牙打印机", Toast.LENGTH_LONG).show();
             ;
@@ -308,32 +330,35 @@ public class MainAc extends Activity implements OnClickListener {
       case 10: // 硬键盘的数字键3为删除 删除对应行
         listCodes.remove(lv_code.getSelectedItemPosition());
         codeAdapter.notifyDataSetChanged();
+        int size = listCodes.size();
+        tv_num.setText("已扫描:" + size + "条");
         break;
       case KeyEvent.KEYCODE_BACK: // 快速按两次返回键为退出,按一次为清空数据
         // if ((System.currentTimeMillis() - exitTime) > 2000) {
         // listCodes.clear();
         // productBeans.clear();
         // exitTime = System.currentTimeMillis();
+        // return false;
         // } else {
-        // this.finish();
+        this.finish();
         // }
 
-        if (isSecondTime) {
-          /* 清空用户信息 */
-          /* 退出App */
-          super.onBackPressed();
-        } else {
-          listCodes.clear();
-          productBeans.clear();
-          isSecondTime = true;
-          mExitHandler.postDelayed(new Runnable() {
-
-            @Override
-            public void run() {
-              mExitHandler.sendEmptyMessage(0);
-            }
-          }, 2000);
-        }
+        // if (isSecondTime) {
+        // /* 清空用户信息 */
+        // /* 退出App */
+        // super.onBackPressed();
+        // } else {
+        // listCodes.clear();
+        // productBeans.clear();
+        // isSecondTime = true;
+        // mExitHandler.postDelayed(new Runnable() {
+        //
+        // @Override
+        // public void run() {
+        // mExitHandler.sendEmptyMessage(0);
+        // }
+        // }, 2000);
+        // }
         break;
       case 204: // 重新打印
         if (!Tools.isNull(SelectedBDAddress)) {
@@ -375,85 +400,53 @@ public class MainAc extends Activity implements OnClickListener {
       product[i] = listCodes.get(i).toString();
     }
 
-    /* 循环相加所有的重量与数量*/
-    int sumWeight = 0;
-    int sumQtyno=0;
+    /* 循环相加所有的重量与数量 */
+    double sumWeight = 0;
+    double sumQtyno = 0;
     for (int i = 0; i < productBeans.size(); i++) {
-      int wei = Integer.parseInt(productBeans.get(i).getWeight());
-      int qtyno=Integer.parseInt(productBeans.get(i).getQty());
+      double wei = Double.parseDouble(productBeans.get(i).getWeight());
+      double qtyno = Double.parseDouble(productBeans.get(i).getQty());
       sumWeight = wei + sumWeight;
-      sumQtyno=qtyno+sumQtyno;
+      sumQtyno = qtyno + sumQtyno;
     }
-    Log.i(TAG, "总重量为:" + sumWeight+",总数量为:"+sumQtyno);
+    Log.i(TAG, "总重量为:" + sumWeight + ",总数量为:" + sumQtyno);
     ProductBean.getInstance().setWeight(sumWeight + "");
     ProductBean.getInstance().setQtyNo(sumQtyno + "");
 
-    NetService.getInstance().insertZxDetails(numHander, carTonNo, product, proname, pronum);
-    NetService.getInstance().update(numHander, product);
-    NetService.getInstance().insertZxMain(numHander, carTonNo, ProductBean.getInstance().getLoading(),
-        ProductBean.getInstance().getLine(), ProductBean.getInstance().getCustmo(),
-        ProductBean.getInstance().getBooth(), ProductBean.getInstance().getDate(),String.valueOf(sumQtyno),String.valueOf(sumWeight), "1");
-  }
-
-  /***
-   * 打印操作 此方法暂不使用
-   * */
-  public synchronized void Print1(String BDAddress) {
-    if (!BtSPP.OpenPrinter(BDAddress)) {
-      Toast.makeText(this, BtSPP.ErrorMessage, Toast.LENGTH_SHORT).show();
-      return;
+  
+    /* 插入数据库 */
+    if (!Tools.isNull(DbProductInfoMannager.getInstance(mActivity).selectById())) {
+      long no = Long.parseLong(DbProductInfoMannager.getInstance(mActivity).selectById());
+      serialNum = no + 1;
+      DbProductInfoMannager.getInstance(mActivity).addSingleNo(String.valueOf(serialNum));
+    } else {
+      DbProductInfoMannager.getInstance(mActivity).addSingleNo(String.valueOf(serialNum));
     }
-    try {
-      BtSPP.SPPWrite(new byte[] { 0x1B, 0x40 }); // 打印机复位
-      BtSPP.SPPWrite(new byte[] { 0x1B, 0x33, 0x00 }); // 设置行间距为0
-      BtSPP.SPPWrite("     \n".getBytes("GBK"));
-      BtSPP.SPPWrite(new byte[] { 0x1B, 0x61, 0x01 }); // 设置不居中 1居中0不居中
-      BtSPP.SPPWrite(new byte[] { 0x1d, 0x21, 0x00 }); // 设置倍高 1倍高0不倍高
-      BtSPP.SPPWrite(String.format("  客户:%-16s\n", ProductBean.getInstance().getCustmo()).getBytes("GBK"));
-      // BtSPP.SPPWrite("\n".getBytes("GBK"));
-      // BtSPP.SPPWrite(new byte[] { 0x1B, 0x61, 0x01 }); // 设置不居中 1居中0不居中
-      BtSPP.SPPWrite(String.format(" 摊位:%-16s", ProductBean.getInstance().getBooth()).getBytes("GBK"));
-      BtSPP.SPPWrite("\n".getBytes("GBK"));
-      Log.i(TAG, "开始打印条码...");
-      BtSPP.SPPWrite(new byte[] { 0x1d, 0x48, 0x02 }); // 设置条码内容打印在条码下方
-      BtSPP.SPPWrite(new byte[] { 0x1d, 0x57, 0x08 }); // 设置条码宽度0.375
-      BtSPP.SPPWrite(new byte[] { 0x1d, 0x68, 0x40 }); // 设置条码高度64
-      // 打印code128条码
-      BtSPP.SPPWrite(new byte[] { 0x1D, 0x6B, 0x08 });
-      Log.i(TAG, "打印条码后...");
-      /* 对日期进行处理 */
-      String date = ProductBean.getInstance().getDate();
+
+    String date = ProductBean.getInstance().getDate();
+    if (!Tools.isNull(date)) {
       String dateStr = date.replace("-", "");
-      carTonNo = dateStr + machine + (serialNum++);
-      BtSPP.SPPWrite((carTonNo + "\0\n").getBytes("GBK"));// 条码字符串
-      Log.i(TAG, "打印条码字符串...");
-      BtSPP.SPPWrite("                \n".getBytes("GBK"));
-      // BtSPP.SPPWrite(String.format("流水号: %6d\n",
-      // serialNum++).getBytes("GBK")); //流水号
-      int no = 1;
-      for (int i = 0; i < productBeans.size(); i++) {
-        Log.i(TAG, "打印数据中..");
-        BtSPP.SPPWrite(String.format((no++) + ".%-16s 数量:%-16s\n", productBeans.get(i).getBwNo(),
-            productBeans.get(i).getQty()).getBytes("GBK"));
-      }
-      // BtSPP.SPPWrite(new byte[] { 0x1d, 0x21, 0x00 }); // 设置不倍高
-      // BtSPP.SPPWrite(new byte[] { 0x1b, 0x61, 0x01 }); // 设置居中
-      // BtSPP.SPPWrite(new byte[] { 0x1d, 0x21, 0x01 }); // 设置倍高
-      // BtSPP.SPPWrite(String.format("日期：%10s\n", date).getBytes("GBK"));
-
-      // BtSPP.SPPWrite("\n\n\n".getBytes("GBK"));
-    } catch (UnsupportedEncodingException e) {
-      BtSPP.SPPClose();
+      String monthAndday = dateStr.substring(4, dateStr.length());
+      String year = dateStr.substring(2, 4);
+      Log.i(TAG, "年:" + year + ",月日:" + monthAndday);
+      carTonNo = monthAndday + year + machine + serialNum;
     }
+    NetService.getInstance().insertZxDetails(mActivity,numHander, carTonNo, product, proname, pronum);
+    NetService.getInstance().update(mActivity,numHander, product);
+   
+    Log.i(TAG, "箱条码-----------------" + carTonNo);
+    NetService.getInstance().insertZxMain(mActivity,numHander, String.valueOf(carTonNo), ProductBean.getInstance().getLoading(),
+        ProductBean.getInstance().getLine(), ProductBean.getInstance().getCustmo(),
+        ProductBean.getInstance().getBooth(), ProductBean.getInstance().getDate(), String.valueOf(sumQtyno),
+        String.valueOf(sumWeight), "1");
 
-    BtSPP.SPPClose();
-    Log.i(TAG, "打印结束...");
   }
 
   /**
-   * 第二种打印方式
+   * 打印操作 第二种打印方式 使用芝柯sdk
    * */
   private synchronized void Print2(String BDAddress) {
+    App.getProduct(mActivity);
     if (!OpenPrinter(BDAddress)) {
       showMessage("sdk:" + zpSDK.ErrorMessage);
       return;
@@ -477,29 +470,31 @@ public class MainAc extends Activity implements OnClickListener {
     double locationY = new Double(5 - offsetMM);
     double rowHeight = new Double(3.5);
     double titleHeight = new Double(4);
-    zpSDK.zp_draw_text_ex(0, locationY, "客户:" + ProductBean.getInstance().getCustmo(), "宋体", 3, 0, true, false, false);
+    zpSDK.zp_draw_text_ex(0, locationY, "客户:" + ProductBean.getInstance().getCustmoName(), "宋体", 3, 0, true, false,
+        false);
     locationY += titleHeight;
-    zpSDK.zp_draw_text_ex(0, locationY, "摊位:" + ProductBean.getInstance().getBooth(), "宋体", 3, 0, true, false, false);
+    zpSDK.zp_draw_text_ex(0, locationY, "摊位:" + ProductBean.getInstance().getBoothName(), "宋体", 3, 0, true, false,
+        false);
     locationY += titleHeight;
 
     /*
      * x：条形码的x坐标位置。 y：条形码的y坐标位置。 data：条形码的值。 size：条码的值的大小长度。 对日期进行处理
      */
-    String date = ProductBean.getInstance().getDate();
-    if (!Tools.isNull(date)) {
-      String dateStr = date.replace("-", "");
-      String monthAndday = dateStr.substring(4, dateStr.length());
-      String year = dateStr.substring(2, 4);
-      Log.i(TAG, "年:" + year + ",月日:" + monthAndday);
-      carTonNo = monthAndday + year + machine + (serialNum++);
-    }
-    zpSDK.zp_draw_barcode(0, locationY, carTonNo, BARCODE_TYPE.BARCODE_CODE128, 7, 2, 0);
+ //   String date = ProductBean.getInstance().getDate();
+//    if (!Tools.isNull(date)) {
+//      String dateStr = date.replace("-", "");
+//      String monthAndday = dateStr.substring(4, dateStr.length());
+//      String year = dateStr.substring(2, 4);
+//      Log.i(TAG, "年:" + year + ",月日:" + monthAndday);
+//      carTonNo = monthAndday + year + machine + (serialNum++);
+//    }
+    zpSDK.zp_draw_barcode(0, locationY,""+carTonNo, BARCODE_TYPE.BARCODE_CODE128, 7, 2, 0);
     locationY += rowHeight;
     zpSDK.zp_draw_text_ex(0, locationY, "             ", "宋体", 2, 0, false, false, false);
     locationY += rowHeight;
     zpSDK.zp_draw_text_ex(0, locationY, "             ", "宋体", 1, 0, false, false, false);
     locationY += rowHeight;
-    zpSDK.zp_draw_text_ex(4, locationY, carTonNo, "宋体", 3, 0, false, false, false); // 把内容打印在条码下方
+    zpSDK.zp_draw_text_ex(4, locationY, ""+carTonNo, "宋体", 3, 0, false, false, false); // 把内容打印在条码下方
     locationY += rowHeight;
     zpSDK.zp_draw_text_ex(0, locationY, "             ", "宋体", 1, 0, false, false, false);
     // locationY += rowHeight;
@@ -507,8 +502,8 @@ public class MainAc extends Activity implements OnClickListener {
     // false, false);
     for (int i = 0; i < productBeans.size(); i++) {
       locationY += rowHeight;
-      zpSDK.zp_draw_text_ex(0, locationY, "" + String.valueOf(i + 1) + "." + productBeans.get(i).getBwNo(), "宋体", 3, 0,
-          false, false, false);
+      zpSDK.zp_draw_text_ex(0, locationY, "" + String.valueOf(i + 1) + "." + productBeans.get(i).getBwdsp(), "宋体", 3,
+          0, false, false, false);
       zpSDK.zp_draw_text_ex(32, locationY, "数量:" + String.valueOf(productBeans.get(i).getQty()), "宋体", 3, 0, false,
           false, false);
     }
@@ -548,8 +543,9 @@ public class MainAc extends Activity implements OnClickListener {
     SharedPreferences sp = getSharedPreferences("selNum", MODE_APPEND);
     Editor ed = sp.edit();
     ed.clear();
-    ed.putInt("sel_num", serialNum);
+    ed.putLong("sel_num", serialNum);
     ed.commit();
+    DbProductInfoMannager.getInstance(mActivity).closeDB();
   }
 
   /**
@@ -567,6 +563,8 @@ public class MainAc extends Activity implements OnClickListener {
           ReviewProductBean bean = new ReviewProductBean();
           bean.setBwNo(array.getJSONObject(i).getString("f_bw_no"));
           bean.setQty(array.getJSONObject(i).getString("f_qty"));
+          bean.setBwdsp((array.getJSONObject(i).getString("f_bw_dsp")));
+          bean.setWeight(array.getJSONObject(i).getString("f_weight"));
           productBeans.add(bean);
         }
         // 调用打印
@@ -585,4 +583,7 @@ public class MainAc extends Activity implements OnClickListener {
       isSecondTime = false;
     };
   };
+  
+  
+  
 }
