@@ -16,10 +16,17 @@ public class DbProductInfoHelper extends SQLiteOpenHelper {
   /** 数据库名称 */
   private static final String DB_NAME = "huatong.db";
 
-  /** 表名 */
+  /** 商品条码表名 */
   private static final String TABLE_NAME = "productno";
   
+  /** ip地址表*/
   private static final String TABLE_NAME_IP = "proip";
+  
+  /** 对应车次应装得数量表*/
+  private static final String TABLE_NAME_BW="bwnoqty";
+  
+  /** 对应车次已装箱好的数量表*/
+  private static final String TABLE_NAME_YET="yetbwnoqty";
 
   public DbProductInfoHelper(Context context) {
     super(context, DB_NAME, null, VERSION);
@@ -57,14 +64,25 @@ public class DbProductInfoHelper extends SQLiteOpenHelper {
     // " showContent VARCHAR(4000) ,"
     // + "price VARCHAR(50)," + "showPictures VARCHAR(400)" + ")";
 
+    /* 商品条码*/
     String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + "(_id INTEGER PRIMARY KEY AUTOINCREMENT, "
         + "pro_no VARCHAR(50)"  + ")";
     sdb.execSQL(sql);
    
-    
+    /* Ip地址*/
     String sqlIp = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME_IP + "(_id INTEGER PRIMARY KEY AUTOINCREMENT, "
         + "pro_ip VARCHAR(50)"  + ")";
     sdb.execSQL(sqlIp);
+    
+    /* 对应车次应装*/
+    String sqlBw = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME_BW + "(_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        + "f_bw_no VARCHAR(50),"  +"f_qty VARCHAR(50)"+ ")";
+    sdb.execSQL(sqlBw);
+    
+    /* 对应车次已装箱好的*/
+    String sqlYet = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME_YET + "(_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        + "f_bw_no VARCHAR(50),"  +"f_qty VARCHAR(50)"+ ")";
+    sdb.execSQL(sqlYet);
   }
 
   /** 此方法用于数据更新表结构 */

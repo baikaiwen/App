@@ -45,7 +45,7 @@ public class NetService {
    * f_ywy是客户,f_zcd_date 日期
    * */
   // http://122.226.226.20:8082/data/open?sql=select+*+from+un_zxdetail_ord+where+f_txm%3D'ZC15080003151'&token=&pagesize=5&pageindex=0
-  public void getFristData(final Context mContext,String code, final Handler handler) {
+  public void getFzcdInfoData(final Context mContext,String code, final Handler handler) {
     // String url = StaticField.HOST
     // +
     // "open?sql=select+f_zc_dsp%2C+f_zcd_no%2Cf_zcd_date%2C+f_cus_no%2Cf_ywy+from+un_zxdetail_ord++where+f_txm%3D'"

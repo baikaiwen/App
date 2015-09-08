@@ -1,5 +1,6 @@
 package com.clw.bluetooth;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,15 +14,21 @@ import org.json.JSONObject;
 import zpSDK.zpSDK.zpSDK;
 import zpSDK.zpSDK.zpSDK.BARCODE_TYPE;
 
+import com.android.pc.ioc.internet.FastHttp;
 import com.android.pc.ioc.verification.annotation.IpAddress;
 import com.clw.bluetooth.app.App;
+import com.clw.bluetooth.bean.BwNoQtyBean;
 import com.clw.bluetooth.bean.ProductBean;
 import com.clw.bluetooth.bean.ReviewProductBean;
+import com.clw.bluetooth.bean.YetBwNoQtyBean;
+import com.clw.bluetooth.db.DbBwnoQty;
 import com.clw.bluetooth.db.DbIp;
 import com.clw.bluetooth.db.DbProductInfoMannager;
+import com.clw.bluetooth.db.DbYetBwnoQty;
 import com.clw.bluetooth.pop.ChoiceDatePop;
 import com.clw.bluetooth.pop.ChoiceDatePop.GetDateListener;
 import com.clw.bluetooth.service.NetService;
+import com.clw.bluetooth.service.UpNetService;
 import com.clw.bluetooth.util.StaticField;
 import com.clw.bluetooth.util.Tools;
 
@@ -66,8 +73,8 @@ public class WelcomeAc extends Activity implements OnClickListener {
 
   /** 条形码输入框 */
   private EditText et_scan;
-  
-  /** ip输入框*/
+
+  /** ip输入框 */
   private EditText et_ip;
 
   /** 日期 */
@@ -83,9 +90,9 @@ public class WelcomeAc extends Activity implements OnClickListener {
 
   /** 扫描得到的单据条码 */
   private String strCode = "";
-  
-  /** 输入的ip*/
-  private String strIp="";
+
+  /** 输入的ip */
+  private String strIp = "";
 
   /** 数据 */
   private List<ReviewProductBean> productBeans = new ArrayList<ReviewProductBean>();
@@ -104,11 +111,10 @@ public class WelcomeAc extends Activity implements OnClickListener {
 
   private Button btn_set;
 
-  /** 赋值首选项存取的机台号*/
+  /** 赋值首选项存取的机台号 */
   private String no = "";
-  
-  private long proNo=0;
-  
+
+  private long proNo = 0;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -132,7 +138,7 @@ public class WelcomeAc extends Activity implements OnClickListener {
     tv_time = (TextView) findViewById(R.id.tv_time);
     tv_shebei = (TextView) findViewById(R.id.tv_shebei);
     btn_set = (Button) findViewById(R.id.btn_set);
-    et_ip=(EditText) findViewById(R.id.et_ip);
+    et_ip = (EditText) findViewById(R.id.et_ip);
 
     btn_set.setOnClickListener(this);
     tv_time.setOnClickListener(this);
@@ -144,9 +150,9 @@ public class WelcomeAc extends Activity implements OnClickListener {
     /* 首选项 */
     sp_machine_no = getSharedPreferences("machine_no", MODE_PRIVATE);
     no = App.getMachineNo(mContext);
-    String ip=DbIp.getInstance(mContext).selectById();
+    String ip = DbIp.getInstance(mContext).selectById();
     et_scan.requestFocus();
-    if (!Tools.isNull(no,ip)) {
+    if (!Tools.isNull(no, ip)) {
       et_input.setText(no);
       et_ip.setText(ip);
       et_ip.setEnabled(false);
@@ -160,6 +166,7 @@ public class WelcomeAc extends Activity implements OnClickListener {
   @Override
   protected void onResume() {
     super.onResume();
+    et_scan.requestFocus();
     // 判断输入的管理密码是否正确
     if (StaticField.isConfigPwd || Tools.isNull(no)) {
       et_input.setEnabled(true);
@@ -253,25 +260,23 @@ public class WelcomeAc extends Activity implements OnClickListener {
   public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
     switch (keyCode) {
       case KeyEvent.KEYCODE_TAB: // 按下tab键时判断机台号与单据条码是否为空
-        // date=tv_time.getText().toString();
         machine = et_input.getText().toString();
         strCode = et_scan.getText().toString();
-        strIp=et_ip.getText().toString();
-//        strCode = str.substring(0, str.length() - 1);
-        if (!Tools.isNull(machine, strCode,strIp)) {
+        strIp = et_ip.getText().toString();
+        if (!Tools.isNull(machine, strCode, strIp)) {
           Editor ed = sp_machine_no.edit();
           ed.clear();
           ed.putString("no", machine);
           ed.commit();
           DbIp.getInstance(mContext).deleteTableData();
-          
+
           if (!strIp.contains("http://")) {
-            DbIp.getInstance(mContext).addIp("http://"+strIp+"/data/");
-          }else{
+            DbIp.getInstance(mContext).addIp("http://" + strIp + "/data/");
+          } else {
             DbIp.getInstance(mContext).addIp(strIp);
           }
-          Log.i(TAG, "输入的IP地址:"+strIp);
-          NetService.getInstance().getFristData(mContext,strCode, handler);
+          Log.i(TAG, "输入的IP地址:" + strIp);
+          NetService.getInstance().getFzcdInfoData(mContext, strCode, handler);
 
         } else {
           Toast.makeText(mContext, "请输入完整信息", Toast.LENGTH_LONG);
@@ -291,6 +296,9 @@ public class WelcomeAc extends Activity implements OnClickListener {
           showMessage("再按一次退出!");
           return false;
         } else {
+          /* 删除sql数据*/
+          DbBwnoQty.getInstance(mContext).deleteTableData();
+          DbYetBwnoQty.getInstance(mContext).deleteTableData();
           this.finish();
         }
         break;
@@ -304,17 +312,93 @@ public class WelcomeAc extends Activity implements OnClickListener {
    * 网络请求Handler消息处理
    * 
    * */
+  /** 对应车次的品名,数量 */
+  // private List<BwNoQtyBean> bwNoQtyBeans = new ArrayList<BwNoQtyBean>();
+  /** 对应车次已装箱的品名,数量 */
+  // private List<YetBwNoQtyBean> yetBwNoQtyBeans = new
+  // ArrayList<YetBwNoQtyBean>();
   Handler handler = new Handler() {
     public void handleMessage(android.os.Message msg) {
       switch (msg.arg1) {
-        case 1:
+        case 1: // 获取装车单信息以后发送请求获取对应车次的品名,数量
           et_scan.getText().clear();
-          startActivity(new Intent(mContext, MainAc.class).putExtra("jt_no", machine));
+          // startActivity(new Intent(mContext, MainAc.class).putExtra("jt_no",
+          // machine));
           Log.i(TAG, "线路:" + ProductBean.getInstance().getLine() + ",客户:" + ProductBean.getInstance().getCustmo()
               + ",摊位:" + ProductBean.getInstance().getBooth());
+          UpNetService.getInstance().getNameAndNum(mContext, handler, ProductBean.getInstance().getLoading(),
+              ProductBean.getInstance().getBooth());
           break;
         case 0:
           Toast.makeText(mContext, "网络错误", 200).show();
+          break;
+        case 11: // 获取对应车次品名,数量成功 .
+          String result = msg.obj.toString();
+          try {
+            JSONObject obj = new JSONObject(result);
+            int status = obj.getInt("status");
+            if (status == 0) {
+              // 保存对应车次品名,数量
+              JSONArray data = obj.getJSONArray("data");
+              if (data.length() > 0) {
+                for (int i = 0; i < data.length(); i++) {
+                  String f_bw_no = data.getJSONObject(i).getString("f_bw_no");
+                  String f_qty = data.getJSONObject(i).getString("f_qty");
+                  // BwNoQtyBean qtyBean = new BwNoQtyBean();
+                  // qtyBean.setF_bw_no(f_bw_no);
+                  // qtyBean.setF_qty(f_qty);
+                  // bwNoQtyBeans.add(qtyBean);
+
+                  if (DbBwnoQty.getInstance(mContext).judgeId(f_bw_no)) {
+                    DbBwnoQty.getInstance(mContext).deleteSingle(f_bw_no);
+                    DbBwnoQty.getInstance(mContext).add(f_bw_no, f_qty);
+                  } else {
+                    DbBwnoQty.getInstance(mContext).add(f_bw_no, f_qty);
+                  }
+                }
+              }
+              /* 再发出请求获取已经装箱好的品名与数量 */
+              UpNetService.getInstance().getHasNameAndNum(mContext, handler, ProductBean.getInstance().getLoading(),
+                  ProductBean.getInstance().getBooth());
+            } else {
+              showMessage("请求错误");
+            }
+          } catch (JSONException e) {
+            Log.e(TAG, "", e);
+          }
+          break;
+        case 22: // 获取到已经装箱好的数据
+          String json = msg.obj.toString();
+          try {
+            JSONObject obj = new JSONObject(json);
+            int status = obj.getInt("status");
+            if (status == 0) {
+              JSONArray data = obj.getJSONArray("data");
+              if (data.length() > 0) {
+                for (int i = 0; i < data.length(); i++) {
+                  String f_bw_no = data.getJSONObject(i).getString("f_bw_no");
+                  String f_qty = data.getJSONObject(i).getString("f_qty");
+                  // YetBwNoQtyBean bean = new YetBwNoQtyBean();
+                  // bean.setF_bw_no(f_bw_no);
+                  // bean.setF_qty(f_qty);
+                  // yetBwNoQtyBeans.add(bean);
+                  if (DbYetBwnoQty.getInstance(mContext).judgeId(f_bw_no)) {
+                    DbYetBwnoQty.getInstance(mContext).deleteSingle(f_bw_no);
+                    DbYetBwnoQty.getInstance(mContext).add(f_bw_no, f_qty);
+                  } else {
+                    DbYetBwnoQty.getInstance(mContext).add(f_bw_no, f_qty);
+                  }
+                }
+              }
+              /* 跳转 */
+              startActivity(new Intent(mContext, MainAc.class).putExtra("jt_no", machine));
+            } else {
+              showMessage("请求错误");
+            }
+          } catch (JSONException e) {
+            Log.e(TAG, "", e);
+          }
+
           break;
         default:
           break;
@@ -411,13 +495,13 @@ public class WelcomeAc extends Activity implements OnClickListener {
       DbProductInfoMannager.getInstance(mContext).addSingleNo(String.valueOf(serialNum));
     }
 
-    zpSDK.zp_draw_barcode(0, locationY, proNo+"", BARCODE_TYPE.BARCODE_CODE128, 7, 2, 0);
+    zpSDK.zp_draw_barcode(0, locationY, proNo + "", BARCODE_TYPE.BARCODE_CODE128, 7, 2, 0);
     locationY += rowHeight;
     zpSDK.zp_draw_text_ex(0, locationY, "             ", "宋体", 2, 0, false, false, false);
     locationY += rowHeight;
     zpSDK.zp_draw_text_ex(0, locationY, "             ", "宋体", 1, 0, false, false, false);
     locationY += rowHeight;
-    zpSDK.zp_draw_text_ex(4, locationY, proNo+"", "宋体", 3, 0, false, false, false); // 把内容打印在条码下方
+    zpSDK.zp_draw_text_ex(4, locationY, proNo + "", "宋体", 3, 0, false, false, false); // 把内容打印在条码下方
     locationY += rowHeight;
     // zpSDK.zp_draw_text_ex(0, locationY, "             ", "宋体", 1, 0, false,
     // false, false);
@@ -460,10 +544,12 @@ public class WelcomeAc extends Activity implements OnClickListener {
   public void showMessage(String str) {
     Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
   }
-  
+
   @Override
   protected void onDestroy() {
     super.onDestroy();
     DbProductInfoMannager.getInstance(mContext).closeDB();
+    DbBwnoQty.getInstance(mContext).closeDB();
+    DbYetBwnoQty.getInstance(mContext).closeDB();
   }
 }

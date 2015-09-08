@@ -1,9 +1,10 @@
 package com.clw.bluetooth.adapter;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.clw.bluetooth.R;
+import com.clw.bluetooth.bean.ReviewProductBean;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -18,11 +19,11 @@ import android.widget.TextView;
 public class CodeAdapter extends BaseAdapter {
   private static final String TAG = "CodeAdapter";
 
-  private List<String> codes;
+  private List<ReviewProductBean> codes;
 
   private Context mContext;
 
-  public CodeAdapter(List<String> codes, Context mContext) {
+  public CodeAdapter(List<ReviewProductBean> codes, Context mContext) {
     this.mContext = mContext;
     this.codes = codes;
   }
@@ -48,18 +49,21 @@ public class CodeAdapter extends BaseAdapter {
     if (convertView == null) {
       views = new Views();
       convertView = LayoutInflater.from(mContext).inflate(R.layout.item_list, null);
-      views.tv_code = (TextView) convertView.findViewById(R.id.text1);
+      views.tv_code = (TextView) convertView.findViewById(R.id.text_bw);
+      views.tv_qty=(TextView) convertView.findViewById(R.id.text_qty);
       convertView.setTag(views);
     } else {
       views = (Views) convertView.getTag();
     }
 
-    views.tv_code.setText(codes.get(arg0).toString());
+    views.tv_code.setText(codes.get(arg0).getBwNo());
+    views.tv_qty.setText(codes.get(arg0).getQty());
 
     return convertView;
   }
 
   private class Views {
-    TextView tv_code;
+    TextView tv_code; //品名
+    TextView tv_qty; //数量
   }
 }

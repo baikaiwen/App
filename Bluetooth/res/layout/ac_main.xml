@@ -77,22 +77,42 @@
         <TextView
             android:id="@+id/tv_custmo_name"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="6"
             android:ellipsize="end"
             android:singleLine="true"
-            android:layout_height="wrap_content"
             android:textColor="@color/black"
             android:textSize="16sp" />
 
         <TextView
             android:id="@+id/tv_num"
             android:layout_width="0dp"
-            android:layout_weight="4"
             android:layout_height="wrap_content"
+            android:layout_weight="4"
             android:text="已扫描:"
             android:textColor="@color/red"
             android:textSize="16sp" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_dspno_name"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:paddingLeft="6dp"
+        android:singleLine="true"
+        android:textColor="@color/black"
+        android:textSize="16sp" />
+    
+    <TextView 
+        android:id="@+id/tv_qty"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:singleLine="true"
+        android:textColor="@color/black"
+        android:paddingLeft="6dp"
+        />
 
     <RelativeLayout
         android:layout_width="fill_parent"
